@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en" ng-app="myApp">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Appointment</title>
+    <style>
+        /* CSS Styles */
+        .doctor-appointment {
+            border: 1px solid #ccc;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+
+        .doctor-appointment h3 {
+            margin-top: 0;
+        }
+
+        .doctor-appointment button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin-top: 10px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        .doctor-appointment button:hover {
+            background-color: #45a049;
+        }
+
+        .schedule {
+            margin-top: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 10px;
+        }
+    </style>
+</head>
+
+<body ng-controller="AppointmentController">
+    <h2>Book an Appointment</h2>
+    <div ng-repeat="doctor in doctors" class="doctor-appointment">
+        <h3>{{ doctor.name }}</h3>
+        <p><strong>Specialization:</strong> {{ doctor.specialization }}</p>
+        <p><strong>Experience:</strong> {{ doctor.experience }} years</p>
+        <p><strong>Operation Fee:</strong> ${{ doctor.operationFee }}</p>
+        <button ng-click="showSchedule(doctor)">Book Appointment</button>
+        <div class="schedule" ng-show="doctor.showSchedule && doctor.availabilityTimes && !isEmpty(doctor.availabilityTimes)">
+            <h4>Schedule for {{ doctor.name }}</h4>
+            <div ng-repeat="(day, time) in doctor.availabilityTimes">
+                <div ng-if="time.startTime && time.endTime">
+                    <label>{{ day }}:</label>
+                    <select ng-model="selectedSlot[day]">
+                        <option ng-repeat="timeSlot in getTimeSlots(time.startTime, time.endTime)">{{ timeSlot }}</option>
+                    </select>
+                </div>
+            </div>
+            <label>Patient Name:</label>
+            <input type="text" ng-model="doctor.patientName" placeholder="Enter Patient Name">
+            <button ng-click="bookAppointment(doctor, selectedSlot, doctor.patientName)">Confirm Appointment</button>
+            <p ng-if="appointmentError" style="color: red;">{{ appointmentError }}</p>
+        </div>
+    </div>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
+    <script>
+        angular.module('myApp', [])
+            .controller('AppointmentController', function ($scope, $http) {
+                $scope.doctors = []; // Initialize doctors array
+                $scope.selectedSlot = {}; // Initialize selected slot object
+                $scope.appointmentError = ''; // Initialize appointment error message
+
+                // Check if object is empty
+                $scope.isEmpty = function (obj) {
+                    return Object.keys(obj).length === 0;
+                };
+
+                // Fetch available doctors data from backend
+                $http.get('http://localhost:8080/api/doctors')
+                    .then(function (response) {
+                        $scope.doctors = response.data.doctors.map(doctor => ({
+                            ...doctor,
+                            showSchedule: false,
+                            patientName: '' // Initialize patient name for each doctor
+                        }));
+                    })
+                    .catch(function (error) {
+                        console.error('Error fetching doctors:', error);
+                    });
+
+                // Function to show the doctor's schedule
+                $scope.showSchedule = function (doctor) {
+                    // Fetch doctor's schedule from backend
+                    $http.get(`http://localhost:8080/api/doctors/${doctor._id}/schedule`)
+                        .then(function (response) {
+                            doctor.availabilityTimes = response.data.availabilityTimes;
+                            doctor.showSchedule = true;
+                        })
+                        .catch(function (error) {
+                            console.error('Error fetching schedule:', error);
+                        });
+                };
+
+                // Function to generate time slots between start and end time
+                $scope.getTimeSlots = function (startTime, endTime) {
+                    let timeSlots = [];
+                    let currentTime = new Date(startTime);
+
+                    while (currentTime < new Date(endTime)) {
+                        timeSlots.push(currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+                        currentTime.setMinutes(currentTime.getMinutes() + 30); // Increment by 30 minutes
+                    }
+
+                    return timeSlots;
+                };
+
+                // Function to book an appointment
+                $scope.bookAppointment = function (doctor, selectedSlot, patientName) {
+                    if (Object.values(selectedSlot).some(slot => !slot)) {
+                        $scope.appointmentError = 'Please select a time slot for each day.';
+                        return;
+                    }
+
+                    // Check if selected time falls within doctor's available time range for each selected day
+                    for (const day in selectedSlot) {
+                        if (selectedSlot.hasOwnProperty(day)) {
+                            const selectedTime = new Date(selectedSlot[day]);
+                            const startTime = new Date(doctor.availabilityTimes[day].startTime);
+                            const endTime = new Date(doctor.availabilityTimes[day].endTime);
+
+                            if (selectedTime < startTime || selectedTime >= endTime) {
+                                $scope.appointmentError = 'Selected time for ' + day + ' is not within doctor\'s available time range.';
+                                return;
+                            }
+                        }
+                    }
+
+                    // Clear any previous error message
+                    $scope.appointmentError = '';
+
+                    console.log('Booking appointment with doctor:', doctor);
+                    console.log('Selected slots:', selectedSlot);
+
+                    // Prepare appointment data
+                    const appointmentData = {
+                        doctorId: doctor._id,
+                        patientName: patientName,
+                        appointmentDateTime: {
+                            day: Object.keys(selectedSlot)[0], // Assuming only one day is selected
+                            time: selectedSlot[Object.keys(selectedSlot)[0]] // Assuming only one time slot is selected
+                        }
+                    };
+
+                    // Send appointment data to the server
+                    $http.post('http://localhost:8080/api/appointments/book', appointmentData)
+                        .then(function (response) {
+                            // Appointment booking successful
+                            alert('Appointment booked successfully!');
+                            console.log('Appointment booked:', response.data);
+                            // Optionally, redirect to a confirmation page or update UI
+                        })
+                        .catch(function (error) {
+                            // Appointment booking failed
+                            alert('Failed to book appointment. Please try again later.');
+                            console.error('Error booking appointment:', error);
+                        });
+                };
+            });
+    </script>
+</body>
+
+</html>

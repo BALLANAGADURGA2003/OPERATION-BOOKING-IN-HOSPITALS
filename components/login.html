@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en" ng-app="myApp">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <link rel="stylesheet" href="styles1.css">
+</head>
+<body ng-controller="LoginController">
+    <div class="login-container">
+        <div class="lottie-animation">
+            <script src="https://unpkg.com/@dotlottie/player-component@latest/dist/dotlottie-player.mjs" type="module"></script>
+            <dotlottie-player src="https://lottie.host/3130f8ab-70c6-44ec-82c0-18412a19b1ab/mBKQteWx5a.json" background="transparent" speed="1" style="width: 100%; height: 200px;" loop autoplay></dotlottie-player>
+        </div>
+        <h2>Login</h2>
+        <!-- Success message div -->
+        <div class="success-message" ng-show="successMessage">{{ successMessage }}</div>
+        
+        <!-- Error message div -->
+        <div class="error-message" ng-show="errorMessage">{{ errorMessage }}</div>
+        
+        <form id="login-form" ng-submit="submitForm()">
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" ng-model="formData.email" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" ng-model="formData.password" required>
+            </div>
+            <button type="submit">Login</button>
+        </form>
+    </div>
+    
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
+    <script>
+        angular.module('myApp', [])
+            .controller('LoginController', function ($scope, $http, $window) {
+                $scope.formData = {
+                    email: '',
+                    password: ''
+                };
+                $scope.successMessage = ''; // Initialize success message
+                $scope.errorMessage = ''; // Initialize error message
+    
+                $scope.submitForm = function () {
+                    console.log('Submitting form...');
+                    console.log('Form data:', $scope.formData);
+    
+                    $http.post('http://localhost:8080/api/doctors/login', $scope.formData)
+                        .then(function (response) {
+                            console.log('Login successful');
+                            $scope.successMessage = 'Login successful'; // Set success message
+                            $scope.errorMessage = ''; // Clear any previous error message
+    
+                            // Store doctor's ID in local storage
+                            localStorage.setItem('doctorId', response.data.doctorId);
+    
+                            $window.location.href = './doctorsdashboard.html';
+                        })
+                        .catch(function (error) {
+                            console.error('Login failed', error);
+                            if (error.status === 404) {
+                                $scope.errorMessage = "User not found";
+                            } else if (error.status === 401) {
+                                $scope.errorMessage = "Invalid email or password";
+                            } else {
+                                $scope.errorMessage = "An error occurred while processing your request.";
+                            }
+                            $scope.successMessage = ''; // Clear any previous success message
+                        });
+                };
+            });
+    </script>
+</body>
+</html>

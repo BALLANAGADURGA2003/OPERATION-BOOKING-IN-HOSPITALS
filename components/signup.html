@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en" ng-app="myApp">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="./style.css">
+    <link rel="stylesheet" href="./bootstrap.min.css">
+    <title>Sign Up</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
+</head>
+
+<body ng-controller="SignupController">
+    <div class="signup">
+        <div class="brandimage-signup">
+            <a href="/"><img src="./logo.png" alt="logo"></a>
+            <a href='/'>OPERATION SLOT BOOKING</a>
+        </div>
+        <div class="container signupbox">
+            <div class="row">
+                <div class="col-12 col-lg-6">
+                    <div class="signuptop">
+                        <form ng-submit="submitForm()">
+                            <div class="form-group row">
+                                <label for="inputEmail" class="col-sm-2 col-form-label">Email</label>
+                                <div class="col-sm-10">
+                                    <input type="email" class="form-control" id="inputEmail" ng-model="formData.email" placeholder="Email" required>
+                                </div>
+                            </div>
+                            <div class="form-group row">
+                                <label for="inputPassword" class="col-sm-2 col-form-label">Password</label>
+                                <div class="col-sm-10">
+                                    <input type="password" class="form-control" id="inputPassword" ng-model="formData.password" placeholder="Password" required>
+                                </div>
+                            </div>
+                            <div class="form-group row">
+                                <legend class="col-form-label col-sm-2 pt-0">Your Role</legend>
+                                <div class="col-sm-10">
+                                    <div class="form-check" ng-repeat="role in roles">
+                                        <input class="form-check-input" type="radio" name="role" ng-model="formData.role" ng-value="role.value">
+                                        <label class="form-check-label">{{ role.label }}</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group row" id="specializationField" ng-show="formData.role === 'doctor'">
+                                <label for="specialization" class="col-sm-2 col-form-label">Specialization</label>
+                                <div class="col-sm-10">
+                                    <input type="text" class="form-control" id="specialization" ng-model="formData.specialization" placeholder="Specialization">
+                                </div>
+                            </div>
+                            <div class="form-group row" id="availabilityField" ng-show="formData.role === 'doctor'">
+                                <label class="col-sm-2 col-form-label">Availability</label>
+                                <div class="col-sm-10">
+                                    <div class="form-check" ng-repeat="day in days">
+                                        <input class="form-check-input" type="checkbox" ng-model="formData.availability[day]" id="{{ day }}">
+                                        <label class="form-check-label" for="{{ day }}">{{ day }}</label>
+                                        <input type="time" ng-model="formData.availabilityTimes[day].startTime">
+                                        <input type="time" ng-model="formData.availabilityTimes[day].endTime">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group row" id="doctorFields" ng-show="formData.role === 'doctor'">
+                                <label for="name" class="col-sm-2 col-form-label">Name</label>
+                                <div class="col-sm-10">
+                                    <input type="text" class="form-control" id="name" ng-model="formData.name" name="name" placeholder="Name">
+                                </div>
+                            </div>
+                            <div class="form-group row" id="doctorFields" ng-show="formData.role === 'doctor'">
+                                <label for="age" class="col-sm-2 col-form-label">Age</label>
+                                <div class="col-sm-10">
+                                    <input type="number" class="form-control" id="age" ng-model="formData.age" name="age" placeholder="Age">
+                                </div>
+                            </div>
+                            <div class="form-group row" id="doctorFields" ng-show="formData.role === 'doctor'">
+                                <label for="experience" class="col-sm-2 col-form-label">Experience</label>
+                                <div class="col-sm-10">
+                                    <input type="text" class="form-control" id="experience" ng-model="formData.experience" name="experience" placeholder="Experience">
+                                </div>
+                            </div>
+                            <div class="form-group row" id="doctorFields" ng-show="formData.role === 'doctor'">
+                                <label for="operationFee" class="col-sm-2 col-form-label">Operation Fee</label>
+                                <div class="col-sm-10">
+                                    <input type="number" class="form-control" id="operationFee" ng-model="formData.operationFee" name="operationFee" placeholder="Operation Fee">
+                                </div>
+                            </div>
+                            
+                            <div class="form-group row">
+                                <div class="col-sm-10">
+                                    <button type="submit" class="form-button-signup">Sign Up</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <div class="col-12 col-lg-6">
+                    <div class="Signuptopimage">
+                        <div id="lottie-animation"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="footer">
+        <div class="footer-text">
+            <div ng-if="successMessage" class="alert alert-success">
+                {{ successMessage }}
+            </div>
+            <div ng-if="errorMessage" class="alert alert-danger">
+                {{ errorMessage }}
+            </div>
+        </div>
+    </div>
+    <script>
+        angular.module('myApp', [])
+        .controller('SignupController', function ($scope, $http, $window) {
+            // Controller logic
+            $scope.formData = {
+                email: '',
+                password: '',
+                role: 'admin'
+            };
+    
+            $scope.roles = [
+                { label: 'Admin', value: 'admin' },
+                { label: 'Patient', value: 'patient' },
+                { label: 'Doctor', value: 'doctor' }
+            ];
+    
+            $scope.days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    
+            $scope.submitForm = function () {
+                // Remove unnecessary fields based on the selected role
+                if ($scope.formData.role !== 'doctor') {
+                    delete $scope.formData.specialization;
+                    delete $scope.formData.availability;
+                    delete $scope.formData.availabilityTimes;
+                }
+    
+                // Make an HTTP POST request to your backend API endpoint
+                $http.post('http://localhost:8080/api/users/register', $scope.formData)
+                    .then(function (response) {
+                        // Registration successful
+                        $scope.successMessage = response.data.message;
+                        console.log('Registration successful:', $scope.successMessage); // Log success message
+                        // Redirect to login page after successful registration
+                        $window.location.href = './login.html';
+                    })
+                    .catch(function (error) {
+                        if (error.data && error.data.message) {
+                            $scope.errorMessage = error.data.message;
+                            console.error('Registration failed:', $scope.errorMessage); // Log error message
+                        } else {
+                            $scope.errorMessage = 'An error occurred while processing your request.';
+                            console.error('Registration failed:', $scope.errorMessage); // Log generic error message
+                        }
+                    });
+                    console.log('Success message:', $scope.successMessage);
+            };
+        });
+    
+    </script>
+    <script src="https://unpkg.com/@dotlottie/player-component@latest/dist/dotlottie-player.mjs" type="module"></script>
+    <script>
+        // Initialize the Lottie animation
+        const lottieAnimation = document.getElementById('lottie-animation');
+        lottieAnimation.innerHTML = `<dotlottie-player src="https://lottie.host/c03ba26a-379d-4baa-8234-1ec7f820e897/MmY7MhvOxH.json" background="transparent" speed="1" style="width: 100%; height: 100%;" loop autoplay></dotlottie-player>`;
+    </script>
+</body>
+
+</html>

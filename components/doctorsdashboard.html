@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en" ng-app="myApp">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doctor's Dashboard</title>
+    <link rel="stylesheet" href="styles3.css">
+</head>
+
+<body ng-controller="DoctorDashboardController">
+    <h2>Booked Appointments</h2>
+    <div ng-if="loading">Loading appointments...</div>
+    <div ng-if="!loading && appointments.length === 0">No appointments booked.</div>
+    <div ng-if="!loading && appointments.length > 0">
+        <table>
+            <thead>
+                <tr>
+                    <th>Patient Name</th>
+                    <th>Day</th>
+                    <th>Time</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr ng-repeat="appointment in appointments">
+                    <td>{{ appointment.patientName }}</td>
+                    <td>{{ appointment.appointmentDateTime.day }}</td>
+                    <td>{{ appointment.appointmentDateTime.time }}</td>
+                    
+                    <td><button ng-click="markCompleted(appointment)">Mark Completed</button></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
+    <script>
+        angular.module('myApp', [])
+            .controller('DoctorDashboardController', function ($scope, $http) {
+                $scope.loading = true;
+                $scope.appointments = [];
+
+                // Retrieve doctor's ID from local storage
+                var doctorId = localStorage.getItem('doctorId');
+
+                if (doctorId) {
+                    // Fetch booked appointments for the doctor
+                    $http.get('http://localhost:8080/api/doctors/' + doctorId + '/appointments')
+                        .then(function (response) {
+                            $scope.appointments = response.data.appointments;
+                            $scope.loading = false;
+                        })
+                        .catch(function (error) {
+                            console.error('Error fetching appointments:', error);
+                            $scope.loading = false;
+                        });
+                } else {
+                    console.error('Doctor ID not found in local storage.');
+                    $scope.loading = false;
+                }
+
+                // Function to mark appointment as completed
+                $scope.markCompleted = function (appointment) {
+                    $http.put('http://localhost:8080/api/appointments/' + appointment._id, { completed: true })
+                        .then(function (response) {
+                            // Update the UI or fetch appointments again to reflect changes
+                            console.log('Appointment marked as completed:', response.data);
+                            // You may want to update the UI here to reflect the change in appointment status
+                        })
+                        .catch(function (error) {
+                            console.error('Error marking appointment as completed:', error);
+                        });
+                };
+            });
+    </script>
+</body>
+
+</html>
